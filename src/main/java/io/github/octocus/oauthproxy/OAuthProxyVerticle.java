@@ -46,7 +46,14 @@ public class OAuthProxyVerticle extends AbstractVerticle {
 
     public static void main(String[] args) {
         Vertx vertx = Vertx.vertx();
-        SystemConfig config = new SystemConfig(System.getenv());
+        SystemConfig config;
+        try {
+            config = new SystemConfig(System.getenv());
+        } catch (IllegalArgumentException e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
+            return;
+        }
         vertx.deployVerticle(new OAuthProxyVerticle(config));
     }
 }
