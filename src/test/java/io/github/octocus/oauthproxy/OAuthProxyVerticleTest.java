@@ -108,12 +108,16 @@ class OAuthProxyVerticleTest {
                         configuration.getHttpServerPort(),
                         LOCALHOST,
                         configuration.getAccessTokenPath())
-                .compose(HttpClientRequest::send)
+                .compose(request -> {
+                    request.putHeader("accept", "application/json");
+                    return request.send();
+                })
                 .onSuccess(response -> testContext.verify(() -> {
                     assertEquals(200, response.statusCode());
                     MultiMap headers = response.headers();
                     assertEquals("*", headers.get(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN));
                     assertEquals("POST, OPTIONS", headers.get(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS));
+                    assertEquals("application/json", headers.get(HttpHeaders.CONTENT_TYPE));
 
                     response.body().onComplete(body -> {
                         String actualResponse = body.result().toString();
@@ -137,6 +141,41 @@ class OAuthProxyVerticleTest {
         assertEquals(MOCK_ACCESS_TOKEN_URL, requestUrl.encodedPath());
         assertEquals(configuration.getClientId(), requestUrl.queryParameter("client_id"));
         assertEquals(configuration.getClientSecret(), requestUrl.queryParameter("client_secret"));
+    }
+
+    @Test
+    void testWhenGithubResponsesErrorWithoutPayload(Vertx vertx, VertxTestContext testContext) {
+        mockWebServer.enqueue(new MockResponse().setResponseCode(500));
+        vertx.createHttpClient()
+                .request(
+                        HttpMethod.POST,
+                        configuration.getHttpServerPort(),
+                        LOCALHOST,
+                        configuration.getAccessTokenPath())
+                .compose(HttpClientRequest::send)
+                .onSuccess(response -> testContext.verify(() -> {
+                    assertEquals(500, response.statusCode());
+                    testContext.completeNow();
+                }))
+                .onFailure(testContext::failNow);
+    }
+
+    @Test
+    void testWhenGithubDoesNotResponse(Vertx vertx, VertxTestContext testContext) throws Exception {
+        mockWebServer.close();
+        mockWebServer.enqueue(new MockResponse().setResponseCode(500));
+        vertx.createHttpClient()
+                .request(
+                        HttpMethod.POST,
+                        configuration.getHttpServerPort(),
+                        LOCALHOST,
+                        configuration.getAccessTokenPath())
+                .compose(HttpClientRequest::send)
+                .onSuccess(response -> testContext.verify(() -> {
+                    assertEquals(500, response.statusCode());
+                    testContext.completeNow();
+                }))
+                .onFailure(testContext::failNow);
     }
 
     @Test

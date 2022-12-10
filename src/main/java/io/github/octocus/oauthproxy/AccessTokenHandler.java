@@ -55,7 +55,12 @@ public class AccessTokenHandler implements Handler<RoutingContext> {
             response.setStatusCode(githubResponse.statusCode());
             response.setStatusMessage(githubResponse.statusMessage());
             response.headers().addAll(githubResponse.headers());
-            response.end(githubResponse.body());
+            Buffer body = githubResponse.body();
+            if (body == null) {
+                response.end();
+            } else {
+                response.end(body);
+            }
         }).onFailure(e -> {
             log.error("Github Server inboundRequest failed.", e);
             HttpServerResponse response = ctx.response();
