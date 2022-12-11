@@ -1,0 +1,13 @@
+spec:
+  name: github-oauth-proxy
+  services:
+    - name: web
+      git:
+        branch: main
+        repo_clone_url: https://github.com/octocus/github-oauth-proxy.git
+      dockerfile_path: Dockerfile
+      envs:
+        - key: GITHUB_CLIENT_ID
+          scope: RUN_TIME
+        - key: GITHUB_CLIENT_SECRET
+          scope: RUN_TIME
